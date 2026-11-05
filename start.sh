@@ -5,6 +5,18 @@ set -euo pipefail
 
 if [ "$(id -u)" = "0" ]; then
   mkdir -p "$HOME"
+
+  # Stable machine id. The host ID registered with the relay is derived from the
+  # machine id, and containers have none, so the CLI falls back to the hostname,
+  # which changes on every Railway deploy. Persist one on the volume and install it.
+  MID_FILE="$DATA_DIR/machine-id"
+  if [ ! -s "$MID_FILE" ]; then
+    tr -d '-' < /proc/sys/kernel/random/uuid > "$MID_FILE"
+  fi
+  mkdir -p /var/lib/dbus
+  cp "$MID_FILE" /var/lib/dbus/machine-id
+  cp "$MID_FILE" /etc/machine-id
+
   chown -R dev:dev "$DATA_DIR"
   exec gosu dev env HOME="$HOME" "$0" "$@"
 fi
